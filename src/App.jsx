@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useEvent } from "./context/EventContext.jsx";
+
 
 const events = [
   {
@@ -102,6 +104,17 @@ function App() {
   const [tickets, setTickets] = useState(1);
   const [bookingMessage, setBookingMessage] = useState("");
 
+
+  const {
+    cart,
+    addToCart,
+    removeFromCart,
+    clearCart,
+    increaseQuantity,
+    decreaseQuantity,
+    totalPrice
+  } = useEvent();
+
   const categories = [
     "All",
     "Technology",
@@ -154,13 +167,15 @@ function App() {
     }
   };
 
-  const bookTickets = () => {
-    setBookingMessage(
-      `You're in! ${tickets} ticket${
-        tickets > 1 ? "s" : ""
-      } booked for ${selectedEvent.title}.`
-    );
-  };
+const bookTickets = () => {
+  for (let i = 0; i < tickets; i++) {
+    addToCart(selectedEvent);
+  }
+
+  setBookingMessage(
+    `You're in! ${tickets} ticket${tickets > 1 ? "s" : ""} booked for ${selectedEvent.title}.`
+  );
+};
 
   const scrollToEvents = () => {
     document
@@ -972,7 +987,7 @@ function App() {
                   ✓ {bookingMessage}
                 </div>
 
-              )}
+                            )}
 
             </div>
 
@@ -982,8 +997,56 @@ function App() {
 
       )}
 
+      {/* CART SECTION */}
+      <div className="mx-auto mt-10 max-w-5xl rounded-2xl bg-white p-6 shadow-lg">
+        <h2 className="mb-4 text-2xl font-bold text-slate-900">
+          🎟️ My Cart
+        </h2>
+
+        {cart.length === 0 ? (
+          <p className="text-slate-500">
+            No tickets added yet.
+          </p>
+        ) : (
+          <div className="space-y-4">
+
+            {cart.map((item, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
+              >
+                <div>
+                  <h3 className="font-bold text-slate-900">
+                    {item.title}
+                  </h3>
+
+                  <p className="text-sm text-slate-500">
+                    ₹{item.price}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => removeFromCart(index)}
+                  className="rounded-lg bg-red-500 px-4 py-2 text-white"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+
+            <div className="border-t pt-4 text-right">
+              <p className="text-xl font-bold">
+                Total: ₹{totalPrice}
+              </p>
+            </div>
+
+          </div>
+        )}
+      </div>
+
     </div>
   );
+
 }
 
 export default App;
