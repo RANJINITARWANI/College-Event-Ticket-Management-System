@@ -1,101 +1,26 @@
-import { useState } from "react";
-import { useEvent } from "./context/EventContext.jsx";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { getEvents } from "./api";
 
+import Login from "./components/Login";
+import Register from "./components/Register";
+import { registerForEvent } from "./redux/registrationSlice";
+import "./App.css";
 
-const events = [
-  {
-    id: 1,
-    title: "Tech Fest 2026",
-    category: "Technology",
-    date: "25 AUG",
-    fullDate: "25 August 2026",
-    time: "10:00 AM",
-    venue: "Main Auditorium",
-    price: 100,
-    image:
-      "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=900&q=80",
-    description:
-      "A full day of coding, robotics, innovation and everything tech.",
-    color: "from-violet-500 to-indigo-600",
-  },
-  {
-    id: 2,
-    title: "Cultural Night",
-    category: "Cultural",
-    date: "30 AUG",
-    fullDate: "30 August 2026",
-    time: "6:00 PM",
-    venue: "College Ground",
-    price: 150,
-    image:
-      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Music, dance, drama and unforgettable performances under the lights.",
-    color: "from-pink-500 to-rose-600",
-  },
-  {
-    id: 3,
-    title: "Inter College Cricket",
-    category: "Sports",
-    date: "05 SEP",
-    fullDate: "5 September 2026",
-    time: "9:00 AM",
-    venue: "College Sports Ground",
-    price: 80,
-    image:
-      "https://images.unsplash.com/photo-1531415074968-036ba1b575da?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Bring your squad and cheer for your college at the biggest cricket clash.",
-    color: "from-emerald-500 to-green-600",
-  },
-  {
-    id: 4,
-    title: "Photography Workshop",
-    category: "Workshop",
-    date: "10 SEP",
-    fullDate: "10 September 2026",
-    time: "11:00 AM",
-    venue: "Seminar Hall",
-    price: 200,
-    image:
-      "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Learn photography, composition and creative storytelling from experts.",
-    color: "from-orange-400 to-amber-600",
-  },
-  {
-    id: 5,
-    title: "Startup Summit",
-    category: "Business",
-    date: "15 SEP",
-    fullDate: "15 September 2026",
-    time: "10:30 AM",
-    venue: "Conference Hall",
-    price: 250,
-    image:
-      "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Meet founders, creators and entrepreneurs building the next big thing.",
-    color: "from-cyan-500 to-blue-600",
-  },
-  {
-    id: 6,
-    title: "Music Festival",
-    category: "Cultural",
-    date: "20 SEP",
-    fullDate: "20 September 2026",
-    time: "5:00 PM",
-    venue: "College Ground",
-    price: 120,
-    image:
-      "https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=900&q=80",
-    description:
-      "Live music, student bands and an evening made for good vibes.",
-    color: "from-fuchsia-500 to-purple-600",
-  },
-];
 
 function App() {
+  const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
+  
+const events = useSelector((state) => state.events.events);
+const dispatch = useDispatch();
+const user = useSelector((state) => state.auth.user);
+const registrations = useSelector(
+  (state) => state.registrations.registrations
+);
+
+
+  const [showRegister, setShowRegister] = useState(false);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -103,17 +28,43 @@ function App() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [tickets, setTickets] = useState(1);
   const [bookingMessage, setBookingMessage] = useState("");
+  useEffect(() => {
+  getEvents()
+    .then((response) => {
+      console.log("Events from MongoDB:", response.data);
+
+      if (response.data.length > 0) {
+        setEvents(response.data);
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to fetch events:", error);
+    });
+}, []);
+
+ if (!isLoggedIn) {
+
+  if (showRegister) {
+
+    return (
+      <Register
+        onLogin={() => setShowRegister(false)}
+      />
+    );
+
+  }
+
+  return (
+    <Login
+      onRegister={() => setShowRegister(true)}
+    />
+  );
+
+}
 
 
-  const {
-    cart,
-    addToCart,
-    removeFromCart,
-    clearCart,
-    increaseQuantity,
-    decreaseQuantity,
-    totalPrice
-  } = useEvent();
+  // KEEP YOUR EXISTING APP CODE BELOW THIS LINE
+
 
   const categories = [
     "All",
@@ -166,14 +117,26 @@ function App() {
       setTickets(tickets - 1);
     }
   };
-
 const bookTickets = () => {
-  for (let i = 0; i < tickets; i++) {
-    addToCart(selectedEvent);
-  }
+  if (!selectedEvent || !user) return;
+
+  dispatch(
+    registerForEvent({
+      userEmail: user.email,
+      eventId: selectedEvent.id,
+      eventTitle: selectedEvent.title,
+      tickets: tickets,
+      totalAmount: selectedEvent.price * tickets,
+      date: selectedEvent.fullDate,
+      time: selectedEvent.time,
+      venue: selectedEvent.venue,
+    })
+  );
 
   setBookingMessage(
-    `You're in! ${tickets} ticket${tickets > 1 ? "s" : ""} booked for ${selectedEvent.title}.`
+    `You're in! ${tickets} ticket${
+      tickets > 1 ? "s" : ""
+    } booked for ${selectedEvent.title}.`
   );
 };
 
@@ -732,11 +695,82 @@ const bookTickets = () => {
 
       </section>
 
-      {/* ================= ABOUT ================= */}
+{/* ================= MY TICKETS ================= */}
 
-      <section
-        id="about"
-        className="bg-slate-950 px-5 py-20 text-white lg:px-8"
+<section className="tickets-section" id="my-tickets">
+
+  <div className="section-heading">
+    <span>MY BOOKINGS</span>
+    <h2>My Tickets 🎟️</h2>
+    <p>View all your registered college events.</p>
+  </div>
+
+  {registrations.filter(
+    (registration) =>
+      registration.userEmail === user?.email
+  ).length === 0 ? (
+
+    <div className="empty-tickets">
+      <h3>No tickets yet</h3>
+      <p>Book an event and your tickets will appear here.</p>
+    </div>
+
+  ) : (
+
+    <div className="tickets-grid">
+
+      {registrations
+        .filter(
+          (registration) =>
+            registration.userEmail === user?.email
+        )
+        .map((registration) => (
+
+          <div
+            className="ticket-card"
+            key={registration.id}
+          >
+
+            <div className="ticket-icon">🎟️</div>
+
+            <h3>{registration.eventTitle}</h3>
+
+            <p>📅 {registration.date}</p>
+            <p>⏰ {registration.time}</p>
+            <p>📍 {registration.venue}</p>
+            <p>🎫 Tickets: {registration.tickets}</p>
+            <p>💰 Total: ₹{registration.totalAmount}</p>
+
+            <div className="ticket-status">
+              ✅ {registration.status}
+            </div>
+
+            <button
+              className="cancel-ticket-button"
+              onClick={() =>
+                dispatch(
+                  cancelRegistration(registration.id)
+                )
+              }
+            >
+              Cancel Ticket
+            </button>
+
+          </div>
+
+        ))}
+
+    </div>
+
+  )}
+
+
+</section>
+{/* ================= ABOUT ================= */}
+
+<section
+  id="about"
+  className="bg-slate-950 px-5 py-20 text-white lg:px-8"
       >
 
         <div className="mx-auto max-w-7xl">
@@ -987,7 +1021,7 @@ const bookTickets = () => {
                   ✓ {bookingMessage}
                 </div>
 
-                            )}
+              )}
 
             </div>
 
@@ -997,56 +1031,9 @@ const bookTickets = () => {
 
       )}
 
-      {/* CART SECTION */}
-      <div className="mx-auto mt-10 max-w-5xl rounded-2xl bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-2xl font-bold text-slate-900">
-          🎟️ My Cart
-        </h2>
-
-        {cart.length === 0 ? (
-          <p className="text-slate-500">
-            No tickets added yet.
-          </p>
-        ) : (
-          <div className="space-y-4">
-
-            {cart.map((item, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between rounded-xl bg-slate-50 p-4"
-              >
-                <div>
-                  <h3 className="font-bold text-slate-900">
-                    {item.title}
-                  </h3>
-
-                  <p className="text-sm text-slate-500">
-                    ₹{item.price}
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => removeFromCart(index)}
-                  className="rounded-lg bg-red-500 px-4 py-2 text-white"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-
-            <div className="border-t pt-4 text-right">
-              <p className="text-xl font-bold">
-                Total: ₹{totalPrice}
-              </p>
-            </div>
-
-          </div>
-        )}
-      </div>
-
     </div>
   );
-
 }
+
 
 export default App;
