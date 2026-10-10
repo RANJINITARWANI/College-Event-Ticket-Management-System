@@ -1,5 +1,7 @@
+
 const express = require("express");
 const Event = require("../models/Event");
+const { protect, adminOnly } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -31,7 +33,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST create event
-router.post("/", async (req, res) => {
+router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const event = new Event(req.body);
     const savedEvent = await event.save();
@@ -45,7 +47,7 @@ router.post("/", async (req, res) => {
 });
 
 // PUT update event
-router.put("/:id", async (req, res) => {
+router.put("/:id", protect, adminOnly, async (req, res) => {
   try {
     const updatedEvent = await Event.findByIdAndUpdate(
       req.params.id,
@@ -71,7 +73,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE event
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protect, adminOnly, async (req, res) => {
   try {
     const deletedEvent = await Event.findByIdAndDelete(
       req.params.id
